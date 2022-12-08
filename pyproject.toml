@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nemglo"
-version = "0.1.0"
+version = "0.1.1"
 description = "Green-energy Load Optimisation tool for the NEM"
 authors = ["dec-heim <92137442+dec-heim@users.noreply.github.com>"]
 license = "BSD-3-Clause license"
