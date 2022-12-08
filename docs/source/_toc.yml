@@ -1,0 +1,35 @@
+format: jb-book
+root: index
+parts:
+- caption: Overview
+  chapters:
+  - file: about
+  - file: quickstart
+  - file: naming
+
+- caption: Examples
+  chapters:
+  - file: examples/fundamentals
+    sections:
+     - file: examples/1_electrolyser/example_1
+     - file: examples/2_renewables/example_2
+     - file: examples/3_emissions/example_3
+  - file: examples/sensitivities
+    sections:
+     - file: examples/1_electrolyser/example_1a
+     - file: examples/2_renewables/example_2a
+     - file: examples/2_renewables/example_2b
+
+- caption: API Reference
+  chapters:
+  - file: api/data_fetch
+  - file: api/components
+  - file: api/planner
+  - file: api/optimiser_index
+    sections:
+    - file: api/optimiser_formatters
+    - file: api/solver_operator
+
+- caption: Help
+  chapters:
+  - file: help/trouble101

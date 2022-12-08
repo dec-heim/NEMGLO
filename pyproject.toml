@@ -1,0 +1,76 @@
+[tool.poetry]
+name = "nemglo"
+version = "0.1.0"
+description = "Green-energy Load Optimisation tool for the NEM"
+authors = ["dec-heim <92137442+dec-heim@users.noreply.github.com>"]
+license = "BSD-3-Clause license"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^1.4.3"
+numpy = "^1.23.1"
+nemosis= "^3.1.0"
+nemed="*"
+mip = "^1.13.0"
+
+# Packages for developers for creating documentation
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+# MyST parser for Sphinx documentation with furo theme
+Sphinx = "4.5.0"
+myst-parser = "^0.18.0"
+myst-nb = "*"
+sphinx-copybutton = "*"
+sphinx_external_toc = "*"
+sphinx-book-theme = "*"
+sphinx_design = "*"
+jupytext = "*"
+plotly = "*"
+furo = "2022.6.21"
+
+# Packages for developers for linting/autoformatting
+[tool.poetry.group.style]
+optional = true
+
+[tool.poetry.group.style.dependencies]
+# static: flake8 (style)
+# autoformatter: black (style), isort (import sort)
+# pre-commit: tool to configure and install pre-commit hooks
+flake8 = "*"
+black = "^22.6.0"
+isort = "^5.10.1"
+pre-commit = "^2.20.0"
+
+# Packages for developers for testing
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+# pytest and pytest-cov for coverage
+pytest = "^7"
+pytest-cov = "^3"
+
+# Config for pytest and pytest-cov
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.15.1"
+
+[tool.pytest.ini_options]
+# path to tests for pytest
+testpaths = ["tests"]
+# addopts = add options
+# -ra means show extra test summary info for all except passed tests
+# --cov points pytest-cov to the src/ dir
+# --cov-branch runs branch coverage. See https://breadcrumbscollector.tech/how-to-use-code-coverage-in-python-with-pytest/
+# --cov-repot html dumps HTML and xml summaries of pytest-cov in the "tests" folder
+addopts = "-ra --cov=src/ --cov-branch --cov-report xml:tests/coverage.xml --cov-report html:tests/htmlcov"
+
+# Config isort to be compatible with black
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core>=1.1.0b2"]
+build-backend = "poetry.core.masonry.api"
