@@ -16,7 +16,7 @@ parts:
      - file: examples/3_emissions/example_3
   - file: examples/sensitivities
     sections:
-     - file: examples/1_electrolyser/example_1a
+     - file: examples/hydrogen_sensitivities/example_1a
      - file: examples/2_renewables/example_2a
      - file: examples/2_renewables/example_2b
 

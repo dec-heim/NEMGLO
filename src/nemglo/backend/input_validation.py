@@ -1,6 +1,10 @@
 # class DataFrameSchema and class SeriesSchema creditted to N.Gorman (nempy)
 import pandas as pd
 import numpy as np
+import logging
+from datetime import datetime as dt
+
+logger = logging.getLogger(__name__)
 
 class DataFrameSchema:
     def __init__(self, name, primary_keys=None):
@@ -151,6 +155,22 @@ def validate_existing(system_plan, name, as_var=False, as_objective_cost=False, 
 def validate_positive_float(input, in_name, c_name):
     assert isinstance(input, float), "{} Argument: '{}' must be a float.".format(c_name, in_name)
     assert input >= 0, "{} Argument: '{}' must be a positive number.".format(c_name, in_name)
+
+
+def validate_variable_type(var, vartype, inputname, functionname):
+    try:
+        assert isinstance(var, vartype), f"`{inputname}` of `{functionname}` cannot be {var}. Accepted types: {vartype}"
+    except AssertionError as e:
+        logger.exception(e)
+        raise e
+
+def validate_and_convert_date(date_string, inputname, date_format="%Y/%m/%d %H:%M"):
+    try:
+        date_obj = dt.strptime(date_string, date_format)
+        return date_obj
+    except ValueError:
+        e = (f"Invalid date string was passed {date_string} as {inputname}. Required date format: {date_format}")
+        logger.exception(e)
 
 
 class RepeatedRowError(Exception):

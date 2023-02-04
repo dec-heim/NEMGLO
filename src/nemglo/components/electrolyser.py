@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-from ..planner import Plan
-from ..backend import input_validation as inv
-from ..backend.optimiser_formatters import *
-from nemglo.defaults import *
+from planner import Plan
+from backend import input_validation as inv
+from backend.optimiser_formatters import *
+from defaults import *
 
 class Electrolyser:
     """Object to store the user input parameters of electrolyser, check and validate inputs, then perform loading
@@ -114,7 +114,7 @@ class Electrolyser:
             self._sec_conversion = SEC_CONVERSION_AE
             self._sec_variable_points = pd.DataFrame(SEC_PROFILE_AE)
         
-        self._sec_system = self._sec_nominal / self._sec_conversion
+        self._sec_system = self._sec_nominal * self._sec_conversion
 
 
     def load_h2_parameters_custom(self, capacity, maxload, minload, offload, sec_profile, sec_nominal, sec_conversion,\
@@ -393,3 +393,176 @@ class Electrolyser:
         create_constr_rhs_on_interval(planner, constr_name=const_name, constr_type='==', rhs_value=mw_value)
         create_constr_lhs_on_interval(planner, constr_name=const_name, constr_rhs=planner._constr_rhs[const_name],
                                       coefficient_map={load_name: 1}) 
+
+
+    def _set_production_target(self, target_value=100, bound="max", period="hour"):
+        """Set production target
+
+        .. warning:: In development (from old version)
+        """
+        planner = self._system_plan
+
+        # Create variable production target, set equal to value
+        # Set sum of lhs params equal to, greater than or less than variable on rhs dynamic
+
+        # consider what happens if timseries data input is hourly but requests < hourly period
+        # consider what happens if timeseries data stops midway through week, how to consider last week?
+        
+        # Create a production target variable on selected intervals determined by `period`
+
+        # production target == p1 + p2 + p3
+        original = pd.DataFrame(index=planner._timeseries, data={'interval':range(planner._n)})
+        original['TimeBegin'] = original.index - timedelta(minutes=planner._intlength)
+
+        if period == "interval":
+            newseries = original.copy()
+            create_timeseries_vars(planner, f'production_target_{bound}_{period}', lb=0, ub=np.inf)
+        elif period == "hour":
+            newseries = original.copy().resample('H',closed='right',label='right').max()
+            create_period_vars(planner, f'production_target_{bound}_{period}', newseries, lb=0, ub=np.inf)
+        elif period == "day":
+            newseries = original.copy().resample('D',closed='right').max()
+            create_period_vars(planner, f'production_target_{bound}_{period}', newseries, lb=0, ub=np.inf)
+        elif period == "week":
+            newseries = original.set_index('TimeBegin').resample('W',closed='right').max()
+            create_period_vars(planner, f'production_target_{bound}_{period}', newseries, lb=0, ub=np.inf)
+        elif period == "month":
+            newseries = original.set_index('TimeBegin').resample('M',closed='right').max()
+            create_period_vars(planner, f'production_target_{bound}_{period}', newseries, lb=0, ub=np.inf)
+        elif period == "year":
+            newseries = original.set_index('TimeBegin').resample('A',closed='right').max()
+            create_period_vars(planner, f'production_target_{bound}_{period}', newseries, lb=0, ub=np.inf)
+        else:
+            raise Exception("Invalid period passed. Valid periods: ['interval','hour','day','week','month','year']")
+
+        # Check Bound Equality
+        if bound == "max":
+            equality = "<="
+        elif bound == "min":
+            equality = ">="
+        elif bound == "equal":
+            equality = "=="
+        else:
+            raise Exception("bound variable must be either: max, min, equal")
+
+        # Set the production target variables to user defined value
+        # e.g. production target >= 100
+        # TODO: MAKE ELASTIC
+        create_constr_rhs_on_interval(planner, f'prd_tgt_{bound}_{period}', constr_type=equality, \
+            rhs_value=target_value, intervals=newseries['interval'].to_list())
+        
+        create_constr_lhs_on_interval(planner, f'prd_tgt_{bound}_{period}', \
+            constr_rhs=planner._constr_rhs[f'prd_tgt_{bound}_{period}'], \
+            coefficient_map={f'production_target_{bound}_{period}': 1})
+
+
+        # Set the production target variables to be the summation of DI production outputs.
+        rhs_series = planner._var[f'production_target_{bound}_{period}'][['interval', 'variable_id']]
+        create_constr_rhs_on_interval_dynamicvar(planner, f'sum_prd_tgt_{bound}_{period}', constr_type="==", \
+            rhs_var_id_series=rhs_series, intervals=newseries['interval'].to_list())
+
+        create_constr_lhs_sum_up_to_intervals(planner, constr_name=f'sum_prd_tgt_{bound}_{period}', \
+            constr_rhs=planner._constr_rhs_dynamic[f'sum_prd_tgt_{bound}_{period}'], \
+            coefficient_map={self._id+'-h2_produced': 1})
+
+
+        # Configuration is..
+        # var: production_target_{bound}_{period} >= defined_value
+        #  sum(h2_production) = RHS production_target...
+
+        # To make this elastic add param in prd_tgt equality constraint
+
+      
+    # ======================= Hydrogen Storage Functions =======================
+    def _set_h2_production_tracking(self):
+        planner = self._system_plan
+        stor_name = self._id + '-h2_stored'
+        prod_name = self._id+'-h2_produced'
+
+        # Var to reflect tracking sum of h2 produced.
+        create_timeseries_vars(planner, var_name=stor_name, lb=0, ub=np.inf)
+
+        # Constr: h2_stored = h2_stored[t-1] + h2_production[t]
+        rhs_series = planner._var[stor_name][['interval', 'variable_id']]
+        create_constr_rhs_on_interval_dynamicvar(planner, constr_name=stor_name, constr_type='==', \
+            rhs_var_id_series=rhs_series)
+
+        # Create LHS on interval-shifting matrix
+        coeff_matrix = pd.DataFrame(data={stor_name: [1,np.nan], prod_name: [np.nan,1]}, index=[-1,0])
+        create_contr_lhs_on_interval_matrix(planner, constr_name=stor_name, \
+            constr_rhs=planner._constr_rhs_dynamic[stor_name], coeff_matrix=coeff_matrix)
+
+
+    def _set_h2_storage_initial(self):
+        planner = self._system_plan
+        stor_name = self._id + '-h2_stored'
+        init_name = self._id + '-h2_stored_initial'
+
+        first_interval = pd.DataFrame(data={'interval':[0]})
+        create_period_vars(planner, var_name=init_name, interval_set=first_interval, lb=0, ub=np.inf)
+        create_constr_rhs_on_interval(planner, constr_name=init_name, constr_type='==', \
+            rhs_value=self._storage_initial, intervals=[0])
+        create_constr_lhs_on_interval(planner, constr_name=init_name, \
+            constr_rhs=planner._constr_rhs[init_name], coefficient_map={init_name: 1})
+
+        # Add initial value as parameter to LHS of storage amount
+        create_constr_lhs_on_interval(planner, constr_name=stor_name, \
+            constr_rhs=planner._constr_rhs_dynamic[stor_name], coefficient_map={init_name: 1})
+
+
+    def _set_h2_storage_final(self):
+        planner = self._system_plan
+        stor_name = self._id + '-h2_stored'
+        final_name = self._id + '-h2_stored_final'
+        force_final = self._id + '-h2_stored_final_constraint'
+
+        final_interval = pd.DataFrame(data={'interval':[planner._n - 1]})
+        create_period_vars(planner, var_name=final_name, interval_set=final_interval, lb=0, ub=np.inf)
+        create_constr_rhs_on_interval(planner, constr_name=final_name, constr_type='==', \
+            rhs_value=self._storage_final, intervals=[planner._n - 1])
+        create_constr_lhs_on_interval(planner, constr_name=final_name, \
+            constr_rhs=planner._constr_rhs[final_name], coefficient_map={final_name: 1})
+
+        # New constraint to force 'h2_stored_final' to equal 'h2_storage_amount' in last interval
+        rhs_series = planner._var[stor_name][['interval', 'variable_id']]
+        create_constr_rhs_on_interval_dynamicvar(planner, constr_name=force_final, constr_type="==", \
+            rhs_var_id_series=rhs_series, intervals=[planner._n - 1])
+
+        create_constr_lhs_on_interval(planner, constr_name=force_final, \
+            constr_rhs=planner._constr_rhs_dynamic[force_final], coefficient_map={final_name: 1})
+
+
+    def _set_h2_storage_max(self):
+        planner = self._system_plan
+        stor_name = self._id + '-h2_stored'
+        max_name = self._id + '-h2_stored_limit'
+        
+        create_constr_rhs_on_interval(planner, constr_name=max_name, constr_type='<=', \
+            rhs_value=self._storage_max)
+
+        create_constr_lhs_on_interval(planner, constr_name=max_name, \
+            constr_rhs=planner._constr_rhs[max_name], coefficient_map={stor_name: 1})
+
+
+    def _set_storage_external_flow(self, external_flow=-500):
+        """Set storage external flow
+
+        .. todo:: Add dynamic storage external_flow that varies between intervals
+        
+        """
+        planner = self._system_plan
+        stor_name = self._id + '-h2_stored'
+        ext_name = self._id + '-h2_stored_extflow'
+        self._storage_ext_flow = [external_flow] * planner._n
+
+        # Create external in/out-flow variable and set to defined mass-flow value.
+        create_timeseries_vars(planner, var_name=ext_name, lb=-np.inf, ub=np.inf)
+        create_constr_rhs_on_interval(planner, constr_name=ext_name, constr_type="==", \
+            rhs_value=self._storage_ext_flow)
+        create_constr_lhs_on_interval(planner, constr_name=ext_name, \
+            constr_rhs=planner._constr_rhs[ext_name], coefficient_map={ext_name: 1})
+
+        # Add external in/out-flow variable as LHS argument to storage system
+        create_constr_lhs_on_interval(planner, constr_name=stor_name, \
+            constr_rhs=planner._constr_rhs_dynamic[stor_name], coefficient_map={ext_name: 1})
+

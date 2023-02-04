@@ -3,15 +3,16 @@ import numpy as np
 import os
 import json
 from datetime import datetime
-from .backend.optimiser_formatters import *
-from .backend.solver_operator import Opt_Solver as solver
-from .data_fetch import *
-from .defaults import *
+from backend.optimiser_formatters import *
+from backend.solver_operator import Opt_Solver as solver
+from data_fetch import *
+from defaults import *
 
-from .backend import input_validation as inv
+from backend import input_validation as inv
 
 class Plan():
     """ Main Planner object to create and run the load optimisation.
+
     """
     def __init__(self, identifier):
 
@@ -26,9 +27,14 @@ class Plan():
         self._prices = []
         self._lgc_price = None
         self._timeseries = []
-        self._n = None
-        self._intlength = None 
+        self._n = None # KEEP AS IS
+        self._intlength = None # KEEP AS IS
         self._rec_price = None
+
+        # # Market => VRE Data
+        # self._vre_det = None
+        # self._vre_cf_1 = []
+        # self._vre_cf_2 = []
 
         # Optimiser Data
         self._solver = 'GRB'
@@ -47,6 +53,7 @@ class Plan():
         self._out_constr = None
 
 
+
     def load_market_prices(self, market_prices):
         """
         Load market inputs to planner module.
@@ -54,7 +61,7 @@ class Plan():
         Parameters
         ----------
         timeseries : bool
-            List of timestamps defining the intervals in the simulation period. The default is True.
+                List of timestamps defining the intervals in the simulation period. The default is True.
 
         market_prices : pandas.DataFrame
             Timeseries data of energy prices to consider in optimisation.
@@ -80,26 +87,189 @@ class Plan():
 
     def _validate_market_prices(self, market_prices):
         schema = inv.DataFrameSchema(name="market_prices", primary_keys=['Time', 'Prices'])
-        schema.add_column(inv.SeriesSchema(name='Time', data_type=np.dtype('datetime64[ns]'), no_duplicates=True, \
-                                           ascending_order=True))
+        schema.add_column(inv.SeriesSchema(name='Time', data_type=np.dtype('datetime64[ns]'), no_duplicates=True, ascending_order=True))
         schema.add_column(inv.SeriesSchema(name='Prices', data_type=np.float64, must_be_real_number=True))
         schema.validate(market_prices)
 
+
+    def _load_rec_price(self, rec_price):
+        assert isinstance(rec_price, (float, pd.DataFrame)), "load_rec_price Argument: 'rec_price' must be a float or pd.DataFrame"
+
+        if type(rec_price) == pd.DataFrame:
+            self._validate_certificate_prices(rec_price)
+
+        self._rec_price = rec_price
+
+
+    def _validate_certificate_prices(self, certificate_prices):
+        schema = inv.DataFrameSchema(name="certificate_prices", primary_keys=['Time', 'Prices'])
+        schema.add_column(inv.SeriesSchema(name='Time', data_type=np.dtype('datetime64[ns]'), no_duplicates=True, \
+            ascending_order=True, minimum=self._timeseries[0], maximum=self._timeseries[-1]))
+        schema.add_column(inv.SeriesSchema(name='REC_price', data_type=np.float64, must_be_real_number=True))
+        schema.validate(certificate_prices)
+
+
+    def _price_mkt_rec(self, allow_buying=True, allow_selling=False):
+        name_rec = self._id + '-mkt_rec_buy'
+        name_rec_sell = self._id + '-mkt_rec_sell'
+       
+        # Price series depending on float or df
+        cost = self._rec_price
+        if type(cost) == pd.DataFrame:
+            cost['interval'] = range(self._n)
+            cost.rename(columns={'REC_price': 'cost'}, inplace=True)
+            cost['cost'] = cost['cost'].mul(self._intlength/60)
+        else:
+            cost = cost * (self._intlength/60)
+
+        if allow_buying:
+            create_timeseries_vars(self, var_name=name_rec, lb=0.0, ub=np.inf)
+            create_objective_cost(self, var_name=name_rec, decision_var_series=self._var[name_rec],
+                                    cost=cost)
+
+        if allow_selling:
+            create_timeseries_vars(self, var_name=name_rec_sell, lb=0.0, ub=np.inf)
+            create_objective_cost(self, var_name=name_rec_sell, decision_var_series=self._var[name_rec_sell],
+                                    cost=(-1 * cost))
+
+    
+    def _set_mkt_rec_sum(self, allow_buying=True, allow_selling=False):
+        name_rec = self._id + '-mkt_rec_buy'
+        name_rec_sum = self._id + '-mkt_rec_buy_sum'
+        name_rec_sell = self._id + '-mkt_rec_sell'
+        name_rec_sell_sum = self._id + '-mkt_rec_sell_sum'
+
+        if allow_buying:
+            # New variable for summation of vre_avail series
+            create_var(self, var_name=name_rec_sum, lb=0.0, ub=np.inf)
+
+            # New constr with variable as RHS
+            rhs_var_id = self._var[name_rec_sum]['variable_id'].values[0]
+            create_constr_rhs_dynamicvar(self, constr_name=name_rec_sum, constr_type='==', rhs_var_id=rhs_var_id)
+
+            # New lhs summation of constraint
+            create_constr_lhs_on_interval_fixed_rhs(self, constr_name=name_rec_sum,
+                                                    constr_rhs=self._constr_rhs_dynamic[name_rec_sum],
+                                                    decision_vars=self._var,
+                                                    coefficient_map={name_rec: 1})
+
+        if allow_selling:
+            # New variable for summation of vre_avail series
+            create_var(self, var_name=name_rec_sell_sum, lb=0.0, ub=np.inf)
+
+            # New constr with variable as RHS
+            rhs_var_id = self._var[name_rec_sell_sum]['variable_id'].values[0]
+            create_constr_rhs_dynamicvar(self, constr_name=name_rec_sell_sum, constr_type='==', rhs_var_id=rhs_var_id)
+
+            # New lhs summation of constraint
+            create_constr_lhs_on_interval_fixed_rhs(self, constr_name=name_rec_sell_sum,
+                                                    constr_rhs=self._constr_rhs_dynamic[name_rec_sell_sum],
+                                                    decision_vars=self._var,
+                                                    coefficient_map={name_rec_sell: 1})
+
+
+    def _price_mkt_rec_sum(self, allow_buying=True, allow_selling=False):
+        name_rec_sum = self._id + '-mkt_rec_buy_sum'
+        name_rec_sell_sum = self._id + '-mkt_rec_sell_sum'
+
+        cost = self._rec_price * (self._intlength/60)
+
+        if allow_buying:
+            create_var(self, var_name=name_rec_sum, lb=0.0, ub=np.inf)
+            create_objective_cost(self, var_name=name_rec_sum, decision_var_series=self._var[name_rec_sum],
+                                    cost=cost)
+
+        if allow_selling:
+            create_var(self, var_name=name_rec_sell_sum, lb=0.0, ub=np.inf)
+            create_objective_cost(self, var_name=name_rec_sell_sum, decision_var_series=self._var[name_rec_sell_sum],
+                                    cost=(-1 * cost))
+
+
+    def _set_acquire_rec_on_interval(self, allow_buying=True, allow_selling=False):
+        name_rec = self._id + '-mkt_rec_buy'
+        name_rec_sell = self._id + '-mkt_rec_sell'
+        name_load = self._components['Electrolyser'][0]._id + '-mw_load'
+        name_constr = self._id+'-rec_acquire'
+
+        coeffs = {}
+        if allow_buying:
+            coeffs.update({name_rec: 1})
+
+        if allow_selling:
+            coeffs.update({name_rec_sell: -1})
+
+        if 'Generator' in self._components:
+            for gen in self._components['Generator']:
+                name_ppa_rec = gen._id + '-vre_avail'
+                coeffs.update({name_ppa_rec: 1})
+
+        rhs_series = self._var[name_load][['interval', 'variable_id']]
+        create_constr_rhs_on_interval_dynamicvar(self, constr_name=name_constr,
+                                    constr_type='>=', rhs_var_id_series=rhs_series)
+
+        create_constr_lhs_on_interval(self, constr_name=name_constr, constr_rhs=self._constr_rhs_dynamic[name_constr],
+                                        coefficient_map=coeffs)
+
+
+    def autoadd_rec_price_on_interval(self, rec_price, allow_buying=True, allow_selling=True):
+        assert isinstance(allow_buying, bool), "`autoadd_rec_price_on_interval` Argument: 'allow_buying' must be a bool"
+        assert isinstance(allow_selling, bool), "`autoadd_rec_price_on_interval` Argument: 'allow_buying' must be a bool"
+
+        self._load_rec_price(rec_price)
+        self._price_mkt_rec(allow_buying, allow_selling)
+        self._set_mkt_rec_sum(allow_buying, allow_selling)
+        self._set_acquire_rec_on_interval(allow_buying, allow_selling)
+
+
+    def _set_acquire_rec_on_sum(self, allow_buying=True, allow_selling=False):
+        name_rec_sum = self._id + '-mkt_rec_buy_sum'
+        name_rec_sell_sum = self._id + '-mkt_rec_sell_sum'
+        name_load = self._components['Electrolyser'][0]._id + '-mw_load_sum'
+        name_constr = self._id+'-rec_acquire'
+
+        coeffs = {}
+        if allow_buying:
+            coeffs.update({name_rec_sum: 1})
+
+        if allow_selling:
+            coeffs.update({name_rec_sell_sum: -1})
+
+        if 'Generator' in self._components:
+            for gen in self._components['Generator']:
+                name_ppa_rec = gen._id + '-ppa_rec_sum'
+                coeffs.update({name_ppa_rec: 1})
+
+        rhs_series = self._var[name_load]['variable_id'].values[0]
+        create_constr_rhs_dynamicvar(self, constr_name=name_constr,
+                                    constr_type='>=', rhs_var_id=rhs_series)
+
+        create_constr_lhs_on_interval(self, constr_name=name_constr, constr_rhs=self._constr_rhs_dynamic[name_constr],
+                                        coefficient_map=coeffs)
+
+
+    def autoadd_rec_price_on_total(self, rec_price, allow_buying=True, allow_selling=True):
+        assert isinstance(allow_buying, bool), "`autoadd_rec_price_on_total` Argument: 'allow_buying' must be a bool"
+        assert isinstance(allow_selling, bool), "`autoadd_rec_price_on_total` Argument: 'allow_buying' must be a bool"
+
+        self._load_rec_price(rec_price)
+        assert isinstance(self._rec_price, float), "`autoadd_rec_price_on_total` requires a static REC price input as a float type. \
+            Instead use `_on_interval` if you wish to define a dynamic REC price"
+        self._price_mkt_rec_sum(allow_buying, allow_selling)
+        self._set_acquire_rec_on_sum(allow_buying, allow_selling)
+       
 
     def view_variable(self, name):
         """View optimiser variables which are in the planner object.
 
         Parameters
         ----------
-        name : str
-            The variable name to retrieve data for. Variable names are strictly defined as per the 'Naming Conventions'
-            page of the NEMGLO documentation.
+        name : _type_
+            _description_
 
         Returns
         -------
-        pd.DataFrame
-            Dataframe of the variable name/s requested containing columns: ['variable_name', 'variable_id', 'interval',
-            'lower_bound','upper_bound', 'type'].
+        _type_
+            _description_
         """
         view_items = dict((k, self._var[k]) for k in [var for var in self._var if var.__contains__(name)])
         if len(view_items) > 0:
@@ -111,9 +281,83 @@ class Plan():
             print("Variable name not found in Plan: '{}'".format(self._id))
         return view_items
     
+    # def view_constraint(self, constraint_name):
+    # 	"""_summary_
+
+    # 	Parameters
+    # 	----------
+    # 	constraint_name : _type_
+    # 		_description_
+
+    # 	Returns
+    # 	-------
+    # 	[name] : pandas.DataFrame
+    # 		Timeseries data of generator trace.
+
+    # 		========  ================================================
+    # 		Columns:  Description:
+    # 		Time      Dispatch interval timestamps (as `datetime.datetime`)
+    # 		{duid}	  Capacity factor trace values between 0 and 1, % (as `np.float64`)
+    # 		========  ================================================
+        
+    # 	"""
+
+    # 	# if the interval is not given use (zero or none) 
+
+    # 	# For the normal rhs one:
+    # 	# columns: constraint_name, constraint_id, interval, coeff_var_1, var_1_name[var_id_1], .... , type, rhs
+
+
+
+    # 	return var
 
     def add_emissions(self, emissions_obj):
+
         self._emissions += [emissions_obj]
+
+
+    def relax_and_price_constr_violation(self, constr_name, sense, cost):
+        """
+        Need to consider the sense + or - of variable in LHS as pos or neg cost
+        """
+        # Not advisable to use relief var on equal bound production limit constraints
+        if constr_name.__contains__('equal'):
+            print("WARNING: It is not advisable to relief and price violation for `equal` bound constraints.\
+                The cost implementation is not valid.")
+
+        # Get constr_rhs
+        if constr_name in self._constr_rhs_dynamic:
+            print("in dynamic")
+            sel_df = self._constr_rhs_dynamic[constr_name]
+        elif constr_name in self._constr_rhs:
+            sel_df = self._constr_rhs[constr_name]
+            print("in normal RHS")
+        else:
+            raise Exception("`price_constraint_violation` could not find constr_name in planner object.\
+                Only RHS and RHS_dynamic objects are considered")
+
+        # Create violation variables
+        if sense == '+':
+            create_period_vars(self, var_name=f"relief_{constr_name}", interval_set=sel_df, lb=0, ub=np.inf)
+        elif sense == '-':
+            create_period_vars(self, var_name=f"relief_{constr_name}", interval_set=sel_df, lb=-np.inf, ub=0)
+        else:
+            raise Exception('Invalid `sense` argument. Must be one of '-' or '+'')
+
+        # Insert relief vars into the LHS of constraint
+        if constr_name in self._constr_rhs:
+            create_constr_lhs_on_interval(self, constr_name=constr_name, constr_rhs=self._constr_rhs[constr_name],\
+                coefficient_map={f"relief_{constr_name}": 1})
+
+        if constr_name in self._constr_rhs_dynamic:
+            create_constr_lhs_on_interval_dynamic(self, constr_name=constr_name, \
+                constr_rhs=self._constr_rhs_dynamic[constr_name], coefficient_map={f"relief_{constr_name}": 1})
+
+        # Price relief vars in objective cost function
+        create_objective_cost(self, var_name=f"relief_{constr_name}", \
+            decision_var_series=self._var[f"relief_{constr_name}"], cost=cost)
+
+        return
 
 
     def optimise(self, solver_name="CBC", save_debug=False, save_results=False, results_dir=None):
@@ -435,7 +679,7 @@ class Plan():
         return round(load_capfac,3) * 100
 
 
-    def get_rec_on_interval(self):
+    def get_rec_on_interval(self, as_mwh=True):
         # Get REC series
         rec_df = self.get_load()[['interval','time','value']]
         rec_df.rename(columns={'value': str(self._components['Electrolyser'][0]._id) + ' RECs surrendered'}, \
@@ -447,9 +691,10 @@ class Plan():
             rec_df = rec_df.merge(res_set, on=['interval','time'], how='left')
             rec_df = rec_df.rename(columns={'value': series})
 
-        # Convert to MWh
-        index_filt = rec_df.columns[~rec_df.columns.isin(['interval','time'])]
-        rec_df.loc[:,index_filt] = np.ceil(rec_df[index_filt].mul((self._intlength/60)))
+        if as_mwh:
+            # Convert to MWh
+            index_filt = rec_df.columns[~rec_df.columns.isin(['interval','time'])]
+            rec_df.loc[:,index_filt] = np.ceil(rec_df[index_filt].mul((self._intlength/60)))
 
         # Rename REC columns
         for col in rec_df.columns:
@@ -522,19 +767,11 @@ class Plan():
             result.insert(0,'variable_name',variable)
             output = pd.concat([output, result],ignore_index=True)
 
-        # Edit to include costs with no time or interval - hard code on mw_load index 0
-        default_time = output.loc[0,'time']
-        default_int = output.loc[0,'interval']
-        output.loc[output['interval'].isna(),'interval'] = 0
-
-        table = output.pivot_table(index=['interval'], columns='variable_name', \
+        table = output.pivot_table(index=['time','interval'], columns='variable_name', \
             values='value')
         table.insert(0,'total_cost',table.sum(axis=1))
         table = table.reset_index()
-        if len(table) == self._n:
-            table.insert(0,'time',self._timeseries)
         table.columns.name = None
-        table = table.fillna(0.0)
 
         if exclude_shadow:
             for col in table.columns:

@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from ..planner import Plan
-from ..backend import input_validation as inv
-from ..backend.optimiser_formatters import *
+from planner import Plan
+from backend import input_validation as inv
+from backend.optimiser_formatters import *
 
 
 class Generator:
@@ -198,3 +198,27 @@ class Generator:
         price_series = pd.DataFrame({'interval': range(n), 'cost': cfd_val})
 
         create_objective_cost(planner, var_name=self._id+'-ppa_cfd', decision_var_series=series, cost=price_series)
+
+
+    def _set_ppa_rec_sum(self):
+        """Add a summation of the traded volume of the PPA CfD which can used to consider the volume of Renewable Energy
+        Certificates received by the load on the assumption of a bundled PPA.
+
+        .. note:: The `ppa_rec_sum` variable is expressed in MW.
+        """
+        planner = self._system_plan
+        name_rec_sum = self._id + '-ppa_rec_sum'
+        name_avail = self._id + '-vre_avail'
+
+        # New variable for summation of vre_avail series
+        create_var(planner, var_name=name_rec_sum, lb=0.0, ub=np.inf)
+
+        # New constr with variable as RHS
+        rhs_var_id = planner._var[name_rec_sum]['variable_id'].values[0]
+        create_constr_rhs_dynamicvar(planner, constr_name=name_rec_sum, constr_type='==', rhs_var_id=rhs_var_id)
+
+        # New lhs summation of constraint
+        create_constr_lhs_on_interval_fixed_rhs(planner, constr_name=name_rec_sum,
+                                                constr_rhs=planner._constr_rhs_dynamic[name_rec_sum],
+                                                decision_vars=planner._var,
+                                                coefficient_map={name_avail: 1})
