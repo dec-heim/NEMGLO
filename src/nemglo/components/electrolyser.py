@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-from planner import Plan
-from backend import input_validation as inv
-from backend.optimiser_formatters import *
-from defaults import *
+from ..planning.planner import Plan
+from ..backend import input_validation as inv
+from ..backend.optimiser_formatters import *
+from ..defaults import *
 
 class Electrolyser:
     """Object to store the user input parameters of electrolyser, check and validate inputs, then perform loading

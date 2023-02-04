@@ -1,6 +1,5 @@
 # NEMGLO
-NEMGLO is a Green-energy Load Optimisation tool for the Australian National Electricity Market (NEM).
-This python tool allows users to counterfactually assess flexible load operating strategies in the NEM using historical market data. Specifically, the tool enables users to test various scenarios with differing PPA contracting structures and green-certificate schemes, a primary case study being the ability to 'validate' the integrity of "green"-hydrogen produced via grid-connected electrolysis with bundled PPA contracting. Although the tool was developed contextually for electrolyser loads, the functionalities can inherently be abstracted to commercial/industrial flexible loads seeking to consume green-energy. 
+NEMGLO, the Green-energy Load Optimisation tool for the Australian National Electricity Market (NEM) is a python tool allows users to counterfactually assess flexible load operating strategies in the NEM using historical market data. Specifically, the tool enables users to test various scenarios with differing PPA contracting structures and green-certificate schemes, a primary case study being the ability to 'validate' the integrity of "green"-hydrogen produced via grid-connected electrolysis with bundled PPA contracting. Although the tool was developed contextually for electrolyser loads, the functionalities can inherently be abstracted to commercial/industrial flexible loads seeking to consume green-energy. 
 
 **Customisable Tool Features:**
 - Load Operating Characteristics (Min stable load, ramp rates, etc.)

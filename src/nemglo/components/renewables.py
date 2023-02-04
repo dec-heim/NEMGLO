@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from planner import Plan
-from backend import input_validation as inv
-from backend.optimiser_formatters import *
-
+from ..planning.planner import Plan
+from ..backend import input_validation as inv
+from ..backend.optimiser_formatters import *
 
 class Generator:
     """Generator class is used to create an object to store parameters defining an Variable Renewable Energy (VRE)

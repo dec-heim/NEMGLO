@@ -1,8 +1,8 @@
 # class DataFrameSchema and class SeriesSchema creditted to N.Gorman (nempy)
 import pandas as pd
 import numpy as np
-import logging
 from datetime import datetime as dt
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,6 @@ def validate_positive_float(input, in_name, c_name):
     assert isinstance(input, float), "{} Argument: '{}' must be a float.".format(c_name, in_name)
     assert input >= 0, "{} Argument: '{}' must be a positive number.".format(c_name, in_name)
 
-
 def validate_variable_type(var, vartype, inputname, functionname):
     try:
         assert isinstance(var, vartype), f"`{inputname}` of `{functionname}` cannot be {var}. Accepted types: {vartype}"
@@ -172,6 +171,74 @@ def validate_and_convert_date(date_string, inputname, date_format="%Y/%m/%d %H:%
         e = (f"Invalid date string was passed {date_string} as {inputname}. Required date format: {date_format}")
         logger.exception(e)
 
+
+def validate_get_market_data(conf):
+    """Validate required and allowed fields for '/api/get-market-data' call.
+    """
+    _check_fields(d=conf,
+                  name="conf",
+                  required={"market_data"},
+                  allowed={"emissions_data"})
+
+    _check_fields(d=conf['market_data'],
+                  name="conf['market_data']",
+                  required={"start_date", "end_date", "region", "dispatch_interval_length"},
+                  allowed={"start_time","end_time"}
+                  )
+
+    if 'emissions_data' in conf:
+        _check_fields(d=conf['emissions_data'],
+                      name="conf['emissions_data']",
+                      required={"emissions_type"})
+
+
+def validate_get_generator_data(conf):
+    """Validate required and allowed fields for '/api/get-generator-data' call.    
+    """
+    _check_fields(d=conf,
+                  name="conf",
+                  required={"market_data","ppa"},
+                  allowed={""})
+
+    _check_fields(d=conf['market_data'],
+                  name="conf['market_data']",
+                  required={"start_date", "end_date", "region", "dispatch_interval_length"},
+                  allowed={"start_time","end_time"}
+                  )
+
+    _check_fields(d=conf['ppa'],
+                  name="conf['ppa']",
+                  required={"duid", "capacity", "strike_price"},
+                  allowed={"floor_price"})
+
+
+def validate_get_data(conf):
+    """Validate required and allowed fields for '/api/get-data' call.    
+    """
+    _check_fields(d=conf,
+                  name="conf",
+                  required={"market_data", "electrolyser_load", "ppa_1", "ppa_2", "rec"},
+                  allowed={""})
+    logger.warning("No subfield checks on '/api/get-data'")
+    # _check_fields(d=conf['market_data'],
+    #               name="conf['market_data']",
+    #               required={"start_date", "end_date", "region", "dispatch_interval_length"},
+    #               allowed={""}
+    #               )
+
+    # _check_fields(d=conf['ppa'],
+    #               name="conf['ppa']",
+    #               required={"duid", "capacity", "strike_price"},
+    #               allowed={"floor_price"})
+
+
+def _check_fields(d, name="", required={""}, allowed={""}, log_type=logger.exception):
+    err_message = f"API param: {name} has invalid fields. Required fields are: {required}. Allowed fields are: {allowed}"
+    try:
+        assert required <= d.keys() <= (required | allowed), err_message
+    except AssertionError as e:
+        log_type(e)
+        raise e
 
 class RepeatedRowError(Exception):
     """Raise for repeated rows."""

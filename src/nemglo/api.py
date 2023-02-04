@@ -27,11 +27,7 @@ logging.getLogger('').addHandler(console)
 logger = logging.getLogger(__name__)
 
 # Backend API imports
-from data_fetch import *
-from planner import *
-from components.electrolyser import Electrolyser
-from components.renewables import Generator
-from nemglo_lite import *
+from .lite import *
 
 from datetime import datetime
 import json
@@ -104,8 +100,11 @@ def api_get_data():
         abort(500, err_message[0])
 
 
-if __name__ == "__main__":
+def run(port=5000):
     print("\n======================================================================\n"+\
           "Access NEMGLO-app (web interface) at: https://www.nemglo.org/simulator \n"+\
           "======================================================================\n")
-    app.run(port=5000)
+    app.run(port=port)
+
+if __name__ == "__main__":
+    run()
