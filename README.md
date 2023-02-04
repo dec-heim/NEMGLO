@@ -11,7 +11,12 @@ This python tool allows users to counterfactually assess flexible load operating
 - Shadow Pricing of Grid Emissions Intensity (average & marginal emissions)
 - Constrain to Green Energy Certification Standards for H2 (max tCO2 content per tH2) 
 
-[*Read more about the project here*](https://nemglo.readthedocs.io/en/latest/about.html)
+**Project Links**
+- Project Homepage: https://www.nemglo.org/
+- Python Github Repository: https://github.com/dec-heim/NEMGLO
+- Python Documentation: https://nemglo.readthedocs.io/en/latest/about.html
+- Standalone Desktop App Github Repository: https://github.com/dec-heim/NEMGLO-app
+
 
 ## Installation
 ```bash
