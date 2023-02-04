@@ -14,17 +14,14 @@ NEMGLO, the Green-energy Load Optimisation tool for the Australian National Elec
 - Project Homepage: https://www.nemglo.org/
 - Python Github Repository: https://github.com/dec-heim/NEMGLO
 - Python Documentation: https://nemglo.readthedocs.io/en/latest/about.html
-- Standalone Desktop App Github Repository: https://github.com/dec-heim/NEMGLO-app
+- NEMGLO App Github Repository: https://github.com/dec-heim/NEMGLO-app
 
 
 ## Installation
 ```bash
 pip install nemglo
 ```
-
-## Future Development
-
-Thanks for checking out this **beta** version! Future work will expand the functions and capabilities of modelling with more customability/settings for electrolyser operation, PPAs and certificate-trading/emissions considerations. A graphical user interface is also being developed. Check back for future information and releases. 
+For guidance on installation and usage of [NEMGLO-app](https://github.com/dec-heim/NEMGLO-app) (a graphical user interface), please refer to its project page.
 
 ## Usage
 For guidance on `NEMGLO` usage, see the [Examples]() section of the documentation.
@@ -37,16 +34,16 @@ Please note that this project is released with a [Code of Conduct](). By contrib
 `NEMGLO` was created by Declan Heim as a Master's Project at UNSW. It is licensed under the terms of the [BSD 3-Clause license](LICENSE).
 
 ## Credits
-This project is affilitated with the [UNSW Collaboration on Energy and Environmental Markets](https://www.ceem.unsw.edu.au/) and was further supported by the [UNSW Digital Grid Futures Institute](https://www.dgfi.unsw.edu.au/).
+The `NEMGLO` project is affilitated with the [UNSW Collaboration on Energy and Environmental Markets](https://www.ceem.unsw.edu.au/). The [`NEMGLO-app`](https://github.com/dec-heim/NEMGLO-app) was financially supported by the [UNSW Digital Grid Futures Institute](https://www.dgfi.unsw.edu.au/) to Dec-2022.
 
 `NEMGLO` incorporates functionality from a suite of UNSW-CEEM tools, namely, [`NEMOSIS`](https://github.com/UNSW-CEEM/NEMOSIS) to extract historical market data and [`NEMED`](https://github.com/UNSW-CEEM/NEMED) to compute emissions data from AEMO's MMS databases respectively. The structure of the optimiser codebase is further adopted from sister tool [`nempy`](https://github.com/UNSW-CEEM/nempy) under [nempy licence](https://github.com/UNSW-CEEM/nempy/blob/master/LICENSE).
 
 ### Acknowlgements
 
 Many thanks to:
-- Jay Anand, co-developer of the `NEMGLO` interactive web tool. 
-- Nick Gorman and Abhijith Prakash for pointers on `NEMGLO` code development.
-- Iain MacGill, Anna Bruce, Rahman Daiyan, and Jack Sheppard as project advisors.
+- Jay Anand, co-developer of `NEMGLO-app`. 
+- Nick Gorman, Abhijith Prakash, and Shayan Naderi for pointers on `NEMGLO` code development (including adopted NEM tools).
+- Iain MacGill, Anna Bruce, Rahman Daiyan, and Jack Sheppard for advice at various stages to this project.
 
 ## Contact
 Questions and feedback are very much welcomed. Please reach out by email to [declanheim@outlook.com](mailto:declanheim@outlook.com)
