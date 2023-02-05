@@ -1,15 +1,26 @@
 # Backend API imports
-from .lite import *
-from .defaults import *
+from nemglo.lite import *
+from nemglo.defaults import *
 # import validate as inv
+import argparse
+import sys
 
 # Flask/CORS imports
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS, cross_origin
-app = Flask(__name__)
+# app = Flask(__name__)
+
+# Flask
+if getattr(sys, 'frozen', False):
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    static_folder = os.path.join(sys._MEIPASS, 'static')
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    app = Flask(__name__)
+
+# Flask cors
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-
 
 # Return error log for API request
 from flask import abort as fabort, make_response
@@ -85,3 +96,23 @@ def run(port=5000):
           "Access NEMGLO-app (web interface) at: https://www.nemglo.org/simulator \n"+\
           "======================================================================\n")
     app.run(port=port)
+
+if __name__=='__main__':
+        
+    # Check if cache folder provided and valid filepath
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cache', '-c', type=str, \
+        help="provide a local filepath to a folder to be used for caching data")
+    args = parser.parse_args()
+
+    # Determine cache folder
+    if (args.cache is None):
+        logging.info("Default data cache location is: {}.".format(DATA_CACHE.FILEPATH))
+    elif (not os.path.exists(args.cache)):
+        logging.info("Default data cache location is: {}.".format(DATA_CACHE.FILEPATH))
+    else:
+        DATA_CACHE.update_path(args.cache)
+        logging.info("Updated preffered data cache location to: {}."+ \
+            "Note, log files will save to default cache.".format(DATA_CACHE.FILEPATH))
+
+    run()

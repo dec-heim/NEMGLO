@@ -1,12 +1,12 @@
 import yaml
 import json
-from .planning.data_fetch import Market
-from .components.renewables import Generator
-from .components.electrolyser import Electrolyser
-from .components.emissions import Emissions
-from .planning.planner import Plan 
-from .backend import input_validation as inv
-from .defaults import *
+from nemglo.planning.data_fetch import Market
+from nemglo.components.renewables import Generator
+from nemglo.components.electrolyser import Electrolyser
+from nemglo.components.emissions import Emissions
+from nemglo.planning.planner import Plan 
+from nemglo.backend import input_validation as inv
+from nemglo.defaults import *
 from types import SimpleNamespace
 from datetime import datetime as dt
 import logging

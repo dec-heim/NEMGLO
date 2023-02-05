@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from ..backend.optimiser_formatters import *
-from ..backend import input_validation as inv
-from ..planning.planner import Plan
+from nemglo.backend.optimiser_formatters import *
+from nemglo.backend import input_validation as inv
+from nemglo.planning.planner import Plan
 
 class Emissions:
     """Object to store the user input parameters of Emissions, check and validate inputs,
