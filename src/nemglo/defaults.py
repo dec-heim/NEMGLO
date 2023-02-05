@@ -1,3 +1,15 @@
+# Execution variables
+import os
+class CACHE():
+    def __init__(self, FILEPATH):
+        self.FILEPATH = FILEPATH
+
+    def update_path(self, FILEPATH):
+        self.FILEPATH = FILEPATH
+
+DATA_CACHE = CACHE(os.path.join(os.getcwd(), "CACHE"))
+LOG_FILEPATH = os.path.join(DATA_CACHE.FILEPATH, "nemglo_sim.log")
+
 # Naming conventions
 variable_names = ['vre_cap']
 constraint_names = []

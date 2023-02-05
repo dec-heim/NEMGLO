@@ -6,6 +6,7 @@ from .components.electrolyser import Electrolyser
 from .components.emissions import Emissions
 from .planning.planner import Plan 
 from .backend import input_validation as inv
+from .defaults import *
 from types import SimpleNamespace
 from datetime import datetime as dt
 import logging
@@ -42,7 +43,9 @@ def get_market_data(conf):
     c_md = SimpleNamespace(**conf['market_data'])
 
     # Nemosis Data -> Price extraction
-    data = Market(local_cache=r'CACHE',
+
+    print(f"getmktdaat cache {DATA_CACHE.FILEPATH}")
+    data = Market(local_cache=DATA_CACHE.FILEPATH,
                   intlength=int(c_md.dispatch_interval_length),
                   region=c_md.region,
                   start_date=convert_dt_fmt(c_md.start_date) + " " + [c_md.start_time if hasattr(c_md, "start_time") else "00:00"][0],
@@ -92,7 +95,7 @@ def get_generator_data(conf):
     inv.validate_get_generator_data(conf)
     c_md = SimpleNamespace(**conf['market_data'])
     c_ppa = SimpleNamespace(**conf['ppa'])
-    data = Market(local_cache=r'CACHE',
+    data = Market(local_cache=DATA_CACHE.FILEPATH,
                   intlength=int(c_md.dispatch_interval_length),
                   region=c_md.region,
                   start_date=convert_dt_fmt(c_md.start_date) + " " + \
@@ -148,7 +151,7 @@ def get_operation(conf):
     p2g = Plan(identifier="p2g")
 
     # Market Data
-    data = Market(local_cache=r'CACHE',
+    data = Market(local_cache=DATA_CACHE.FILEPATH,
                   intlength=int(c_md.dispatch_interval_length),
                   region=c_md.region,
                   start_date=convert_dt_fmt(c_md.start_date) + " " + [c_md.start_time if hasattr(c_md, "start_time") else "00:00"][0],
