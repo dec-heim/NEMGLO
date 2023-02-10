@@ -273,9 +273,6 @@ class Market:
              cfd_value = [(strike_price - self._prices['Prices'][i]) * (self._intlength/60) \
                 for i in range(0, len(self._prices['Prices']))]           
 
-        print(len(cfd_volume))
-        print(len(cfd_value))
-
         cfd = pd.DataFrame({'Time': [self._prices['Time'][i] for i in range(0, min(len(cfd_value), len(cfd_volume)))],
                             'Cost': [cfd_volume[i] *cfd_value[i] for i in range(0, min(len(cfd_value), len(cfd_volume)))],
                             'PriceDiff': [cfd_value[i] for i in range(0, min(len(cfd_value), len(cfd_volume)))],

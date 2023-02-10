@@ -44,7 +44,6 @@ def get_market_data(conf):
 
     # Nemosis Data -> Price extraction
 
-    print(f"getmktdaat cache {DATA_CACHE.FILEPATH}")
     data = Market(local_cache=DATA_CACHE.FILEPATH,
                   intlength=int(c_md.dispatch_interval_length),
                   region=c_md.region,
@@ -59,7 +58,11 @@ def get_market_data(conf):
         c_em = SimpleNamespace(**conf['emissions_data'])
         data._emissions_type = c_em.emissions_type
         print(data._emissions_type)
-        co2_df = data.get_emissions_intensity()
+        try:
+            co2_df = data.get_emissions_intensity()
+        except Exception as e:
+            print(e)
+
 
     prc_df = data.get_prices()
     tracedata['time'] = prc_df['Time']
@@ -145,6 +148,10 @@ def get_operation(conf):
         c_rec = SimpleNamespace(**conf['rec'])
     else:
         c_rec = None
+    if 'emissions' in conf:
+        c_em = SimpleNamespace(**conf['emissions'])
+    else:
+        c_em = None
 
     # Setup environment
     tracedata, tracedata['time'], tracedata['prices'], tracedata['vre'] = {}, {}, {}, {}
@@ -202,31 +209,60 @@ def get_operation(conf):
 
     # Certificate Data
     if 'rec' in conf:
-        print('REC params: {}, {}'.format(c_rec.constraint, type(c_rec.rec_price)))
+        # print('REC params: {}, {}'.format(c_rec.constraint, type(c_rec.rec_price)))
+        if hasattr(c_rec, "rec_price"):
+            rec_price = float(c_rec.rec_price)
+        else:
+            rec_price = 0.0
+
         if c_rec.constraint == "interval":
-            p2g.autoadd_rec_price_on_interval(rec_price=float(c_rec.rec_price), allow_buying=c_rec.allow_buying, allow_selling=c_rec.allow_selling)
+            p2g.autoadd_rec_price_on_interval(rec_price=rec_price, allow_buying=c_rec.allow_buying, allow_selling=c_rec.allow_selling)
             logger.info("+ Applied REC constraint on interval")
         elif c_rec.constraint == "total":
-            p2g.autoadd_rec_price_on_total(rec_price=float(c_rec.rec_price), allow_buying=c_rec.allow_buying, allow_selling=c_rec.allow_selling)
+            p2g.autoadd_rec_price_on_total(rec_price=rec_price, allow_buying=c_rec.allow_buying, allow_selling=c_rec.allow_selling)
             logger.info("+ Applied REC constraint on total")
 
-    print(p2g.__dict__)
+    logger.info("# CONFIG")
+    logger.info(conf)
+
+    # Emissions Data
+    if 'emissions' in conf:
+
+        # Fetch emissions data via NEMED
+        data._emissions_type = c_em.emissions_type
+        co2_df = data.get_emissions_intensity()
+        logger.info("-- Downloaded grid emissions data --")
+
+
+        if hasattr(c_em, "co2_price"):
+            # Shadow carbon price applied
+            print()
+
+
+        elif hasattr(c_em, "co2_constraint"):
+            # or Carbon constraint applied
+            print()
+
 
     # Optimise
     logger.info(">> Attempt Optimisation")
     p2g.optimise()
     logger.info("+ Optimisation Success")
+    
     costs = p2g.get_costs(exclude_shadow=True)
     if ('rec' in conf):
         if (c_rec.constraint == "interval"):
             rec_df = p2g.get_rec_on_interval(as_mwh=False)
+    
     # print(p2g._out_vars)
     # print(p2g.get_rec_summary())
     # print(p2g.get_costs(exclude_shadow=False))
+
     # Results
     result = {}
     result['time'] = convert_timestamp(tracedata['time'])
     result['prices'] = tracedata['prices'].to_list()
+    logger.info("+ Results: Prices")
 
     if ('ppa_1' in conf):
         result['ppa1'] = json.loads(tracedata['vre'][c_ppa1.duid].to_json(orient='split'))
@@ -241,29 +277,41 @@ def get_operation(conf):
                                     c_ppa2.capacity * tracedata['vre'][c_ppa2.duid]
         comb_vre = json.loads(tracedata['combined_vre'].to_json(orient='split'))
         result['combined_vre'] = comb_vre['data']
+    logger.info("+ Results: PPAs")
 
+    # If REC is setup on interval and either of buy or sell (this feature is enabled)
     if ('rec' in conf):
-        if (c_rec.allow_buying) & (not c_rec.allow_selling):
-            comb_rec = costs['p2g-mkt_rec_buy']
-            if (c_rec.constraint == "interval"):
-                rec_df['mkt'] = rec_df['Market RECs bought']
-            else:
-                rec_df['mkt'] = 0
-        elif (not c_rec.allow_buying) & (c_rec.allow_selling):
-            comb_rec = costs['p2g-mkt_rec_sell']
-            if (c_rec.constraint == "interval"):
-                rec_df['mkt'] = -1 * rec_df['Market RECs sold']
-            else:
-                rec_df['mkt'] = 0
-        elif (c_rec.allow_buying) & (c_rec.allow_selling):
-            comb_rec = costs['p2g-mkt_rec_buy'] + costs['p2g-mkt_rec_sell']
-            if (c_rec.constraint == "interval"):
-                rec_df['mkt'] = rec_df['Market RECs bought'] - rec_df['Market RECs sold']
-            else:
-                rec_df['mkt'] = 0
-        result['cost_rec'] = json.loads(comb_rec.to_json(orient='split'))['data']
-        result['rec'] = rec_df['mkt'].to_list()
+        if (c_rec.constraint == "interval"):
+            if (c_rec.allow_buying) & (not c_rec.allow_selling):
+                comb_rec = costs['p2g-mkt_rec_buy']
+                if (c_rec.constraint == "interval"):
+                    rec_df['mkt'] = rec_df['Market RECs bought']
+                else:
+                    rec_df['mkt'] = 0
+            elif (not c_rec.allow_buying) & (c_rec.allow_selling):
+                comb_rec = costs['p2g-mkt_rec_sell']
+                if (c_rec.constraint == "interval"):
+                    rec_df['mkt'] = -1 * rec_df['Market RECs sold']
+                else:
+                    rec_df['mkt'] = 0
+            elif (c_rec.allow_buying) & (c_rec.allow_selling):
+                comb_rec = costs['p2g-mkt_rec_buy'] + costs['p2g-mkt_rec_sell']
+                if (c_rec.constraint == "interval"):
+                    rec_df['mkt'] = rec_df['Market RECs bought'] - rec_df['Market RECs sold']
+                else:
+                    rec_df['mkt'] = 0
+        
+            # Cost results as long as price exists
+            if hasattr(c_rec, "rec_price") & (c_rec.allow_buying | c_rec.allow_selling):
+                if c_rec.rec_price != None:
+                    result['cost_rec'] = json.loads(comb_rec.to_json(orient='split'))['data']
+                    result['rec'] = rec_df['mkt'].to_list()
+        logger.info("+ Results: RECs")
 
+
+    if ('emissions' in conf):
+        # Return grid emissions intensity
+        result['grid_emissions'] = co2_df['Intensity_Index'].to_list()
 
 
     tracedata['optimised_load'] = p2g.get_load()
@@ -271,10 +319,12 @@ def get_operation(conf):
     opt_load = json.loads(tracedata['optimised_load'].to_json(orient='split'))
     result['optimised_load'] = [x[1] for x in opt_load['data']]
     result['timestamps'] = [x[2] for x in opt_load['data']]
+    logger.info("+ Results: Optimised Load")
 
     result['cost_total'] = costs['total_cost'].to_list()
     result['cost_h2'] = costs['h2e-h2_produced'].to_list()
     result['cost_energy'] = costs['h2e-mw_load'].to_list()
+    logger.info("+ Results: Costs")
 
     logger.info('=== End get_operation() ===')
     return json.dumps(result)
