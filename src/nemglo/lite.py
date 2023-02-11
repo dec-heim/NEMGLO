@@ -227,22 +227,24 @@ def get_operation(conf):
 
     # Emissions Data
     if 'emissions' in conf:
-
         # Fetch emissions data via NEMED
         data._emissions_type = c_em.emissions_type
         co2_df = data.get_emissions_intensity()
         logger.info("-- Downloaded grid emissions data --")
-
-
+        em = Emissions(p2g, identifier="em")
         if hasattr(c_em, "co2_price"):
             # Shadow carbon price applied
-            print()
-
+            em.load_emissions(co2_df, float(c_em.co2_price))
+            em.add_emissions()
+            em._price_emissions()
+            logger.info("+ Applied Shadow Price on Grid Emissions Intensity")
 
         elif hasattr(c_em, "co2_constraint"):
             # or Carbon constraint applied
-            print()
-
+            em.load_emissions(co2_df, 0.0)
+            em.add_emissions()
+            em._set_emissions_limit(float(c_em.co2_constraint))
+            logger.info("+ Applied Carbon Intensity of H2 Constraint considering Grid Emissions Intensity")
 
     # Optimise
     logger.info(">> Attempt Optimisation")
@@ -254,10 +256,6 @@ def get_operation(conf):
         if (c_rec.constraint == "interval"):
             rec_df = p2g.get_rec_on_interval(as_mwh=False)
     
-    # print(p2g._out_vars)
-    # print(p2g.get_rec_summary())
-    # print(p2g.get_costs(exclude_shadow=False))
-
     # Results
     result = {}
     result['time'] = convert_timestamp(tracedata['time'])
@@ -312,7 +310,13 @@ def get_operation(conf):
     if ('emissions' in conf):
         # Return grid emissions intensity
         result['grid_emissions'] = co2_df['Intensity_Index'].to_list()
-
+        result['grid_load'] = p2g._format_out_vars_timeseries('em-grid_load')['value'].to_list()
+        result['vre_load'] = p2g._format_out_vars_timeseries('em-vre_proportion')['value'].to_list()
+        result['impact_emissions'] = p2g._format_out_vars_timeseries('em-impact_emissions')['value'].to_list()
+        if hasattr(c_em, "co2_price"):
+            # Return cost component for emissions
+            costs = p2g.get_costs(exclude_shadow=False)
+            result['cost_emissions'] = costs['em-impact_emissions'].to_list()
 
     tracedata['optimised_load'] = p2g.get_load()
     tracedata['optimised_load']['time'] = tracedata['optimised_load']['time'].dt.tz_localize('Australia/Sydney')
@@ -328,130 +332,3 @@ def get_operation(conf):
 
     logger.info('=== End get_operation() ===')
     return json.dumps(result)
-
-
-
-### ARCHIVE ##############################################################################
-def operate_h2e_api(input_file_path=r'E:\PROJECTS\NEMGLO\localonly\inputs.yaml'):
-    
-    # Read inputs .yaml file
-    with open(input_file_path, 'r') as f:
-        inputs = yaml.safe_load(f)
-
-    # Parse data
-    config = inputs['simulation_config']
-    result_fmt = inputs['results']
-
-    # Create nemosis data object
-    inputdata = nemosis_data(intlength=config['market_data']['intlength'],
-                             local_cache=config['setup']['cache'])
-
-    inputdata.set_dates(start = config['market_data']['start'],
-                        end = config['market_data']['end'])
-    
-    inputdata.set_region(region = config['market_data']['region'])
-
-    if 'renewables' in config:
-        if ('generator_1' in config['renewables']) & ('generator_2' in config['renewables']):
-            inputdata.set_unit(duid_1 = config['renewables']['generator_1']['duid'],
-                            duid_2 = config['renewables']['generator_2']['duid'])
-        elif ('generator_1' in config['renewables']):
-            inputdata.set_unit(duid_1 = config['renewables']['generator_1']['duid'],
-                            duid_2 = None)
-        else:
-            raise Exception("Invalid generator format in input file")
-
-
-    # Load Market Data to Planner
-    P2G = Plan()
-    P2G.load_market(timeseries = inputdata.get_timestamp(),
-                    prices = inputdata.get_prices(valueonly=True),
-                    lgc_price = config['market_data']['lgc_price'])
-
-    # Add Electrolyser Object
-    h2e = Electrolyser()
-    h2e._capacity = config['electrolyser']['capacity']
-    h2e._minload = config['electrolyser']['load']['load_min']
-    h2e._maxload = config['electrolyser']['load']['load_max']
-    h2e._offload = config['electrolyser']['load']['load_off']
-    h2e._h2_price_kg = config['electrolyser']['h2_price_kg']
-
-    h2e.config_sec_by_type(electrolyser_type = config['electrolyser']['electrolyser_type'],
-                           profile = config['electrolyser']['sec']['sec_profile'])
-
-    P2G.add_electrolyser(h2e)
-
-    # temp ramping
-    if 'rampcost' in config['electrolyser']:
-        h2e.ramping_smoother(P2G, cost=config['electrolyser']['rampcost'])
-
-    # production targets
-    for k in config['electrolyser'].keys():
-        if k.__contains__('production_target'):
-            h2e.production_target(P2G,
-                target_value=config['electrolyser'][k]['target_value'],
-                bound=config['electrolyser'][k]['bound'],
-                period=config['electrolyser'][k]['period'])
-
-            if config['electrolyser'][k]['soft_constraint']:
-                bound = config['electrolyser'][k]['bound']
-                period = config['electrolyser'][k]['period']
-                cost = config['electrolyser'][k]['soft_constraint_cost']
-
-                if bound == 'max':
-                    P2G.relax_and_price_constr_violation(constr_name=f"prd_tgt_{bound}_{period}", sense='-', cost=-1*cost)
-                elif bound == 'min':
-                    P2G.relax_and_price_constr_violation(constr_name=f"prd_tgt_{bound}_{period}", sense='+', cost=cost)
-
-
-
-    # Add Renewable Object
-    if 'renewables' in config:
-        for k in config['renewables']:
-            # First gen Duid
-            if config['renewables'][k]['activate']:
-                # Create VRE object
-                gen = VREGenerator()
-                gen._duid = config['renewables'][k]['duid']
-                gen._capacity = config['renewables'][k]['capacity']
-                gen._ppa_strike = config['renewables'][k]['ppa_strike']
-                gen._ppa_include_rec = True
-                
-                # Retrieve trace data
-                inputdata.set_unit(duid_1 = config['renewables'][k]['duid'], duid_2=None)
-                vre = inputdata.get_vre_traces()
-                gen._trace = list(vre[config['renewables'][k]['duid']])
-
-                P2G.add_vre_generator(gen)
-            
-
-    # Add emissions object
-    if 'emissions' in config:
-        print("try nemed_data")
-        em_data = nemed_data(intlength=config['market_data']['intlength'],
-                             local_cache=config['setup']['emcache'])
-        em_data.set_region(region = config['market_data']['region'])
-        em_data.set_dates(start = config['market_data']['start'],
-                          end = config['market_data']['end'])
-        print("try get emissions")
-        e_df = em_data.get_emissions(emissions_type=config['emissions']['type'])
-        print("got it")
-        print(e_df)
-        print(em_data._intensity.values)
-
-        co2 = Emissions()
-        co2._trace = em_data._intensity.values # tCO2-e/MWh
-        co2._shadow_price = config['emissions']['shadow_price'] # $/tCO2-e
-        co2.add_emissions(P2G)
-        P2G.add_emissions(co2)
-
-
-    # Run Optimisation
-    P2G.optimise(solver_name="GRB",
-                 save_debug = result_fmt['save_files']['debug'],
-                 save_results = result_fmt['save_files']['results'],
-                 results_dir = result_fmt['save_files']['directory'])
-
-    print("End of nemglo operate_h2e_api script")
-
-    return

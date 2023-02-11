@@ -36,10 +36,10 @@ class Emissions:
 
 
     def _validate_trace(self, trace):
-        schema = inv.DataFrameSchema(name="trace", primary_keys=['Time', 'Emissions_Intensity'])
+        schema = inv.DataFrameSchema(name="trace", primary_keys=['Time', 'Intensity_Index'])
         schema.add_column(inv.SeriesSchema(name='Time', data_type=np.dtype('datetime64[ns]'), no_duplicates=True, \
             ascending_order=True, minimum=self._system_plan._timeseries[0], maximum=self._system_plan._timeseries[-1]))
-        schema.add_column(inv.SeriesSchema(name='Emissions_Intensity', data_type=np.float64, must_be_real_number=True, \
+        schema.add_column(inv.SeriesSchema(name='Intensity_Index', data_type=np.float64, must_be_real_number=True, \
             not_negative=True))
         schema.validate(trace)
 
@@ -96,7 +96,7 @@ class Emissions:
         create_constr_rhs_on_interval_dynamicvar(planner, constr_name=co2_name,
             constr_type='==', rhs_var_id_series=var_ids)
         # Set `impact emissions` volume
-        coeffs = self._trace['Emissions_Intensity'].mul(planner._intlength / 60).to_list()
+        coeffs = self._trace['Intensity_Index'].mul(planner._intlength / 60).to_list()
         create_constr_lhs_on_interval_dynamic(planner, constr_name=co2_name,
             constr_rhs=planner._constr_rhs_dynamic[co2_name],
             decision_vars=planner._var[grid_name],
