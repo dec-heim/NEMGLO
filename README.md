@@ -4,8 +4,6 @@ NEMGLO, the Green-energy Load Optimisation tool for the Australian National Elec
 **Customisable Tool Features:**
 - Load Operating Characteristics (Min stable load, ramp rates, etc.)
 - Multiple Power Purchase Agreements (contract volume, strike, floor, etc.)
-
-**Features Coming Soon:**
 - Renewable Energy Certificate procurement + surrender (with/without temporal matching)
 - Shadow Pricing of Grid Emissions Intensity (average & marginal emissions)
 - Constrain to Green Energy Certification Standards for H2 (max tCO2 content per tH2) 
