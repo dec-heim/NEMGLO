@@ -6,12 +6,4 @@ NEMGLO, or the NEM Green-energy Load Optimisation tool is a mixed-integer linear
 ## Why does this tool exist?
 This tool was developed as a Master's project at UNSW-CEEM with the aim to investigate flexible operation of hydrogen electrolysers in the NEM, in lieu of existing open-source tools that could provide operational, financial and environmental insights in a similar way. This tool acheives more sophisicated insights from modelling operating strategies formed through optimisation than that of simpler logic-based algorithms commonly used in cost-benefit analysis tools.
 
-## How does it work
-*A bit of magic, a bit of code...*
-
-## What can I do with NEMGLO?
-
-
-## What are limitations of the tool?
-
-
+**See also the about section on the project website at [https://www.nemglo.org/about](https://www.nemglo.org/about)**

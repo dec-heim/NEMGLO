@@ -4,10 +4,14 @@ parts:
 - caption: Overview
   chapters:
   - file: about
-  - file: quickstart
   - file: naming
 
-- caption: Examples
+- caption: NEMGLO App
+  chapters:
+  - file: nemglo_app/appintro
+  - file: nemglo_app/appwalkthrough
+
+- caption: Python Examples
   chapters:
   - file: examples/fundamentals
     sections:
@@ -20,7 +24,7 @@ parts:
      - file: examples/2_renewables/example_2a
      - file: examples/2_renewables/example_2b
 
-- caption: API Reference
+- caption: Python Reference
   chapters:
   - file: api/data_fetch
   - file: api/components
