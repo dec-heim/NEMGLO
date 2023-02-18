@@ -19,10 +19,10 @@ NEMGLO, the Green-energy Load Optimisation tool for the Australian National Elec
 ```bash
 pip install nemglo
 ```
-For guidance on installation and usage of [NEMGLO-app](https://github.com/dec-heim/NEMGLO-app) (a graphical user interface), please refer to its project page.
+For guidance on installation and usage of NEMGLO-app (a graphical user interface), please refer to the project webpage linked above.
 
 ## Usage
-For guidance on `NEMGLO` usage, see the [Examples]() section of the documentation.
+For guidance on `NEMGLO` usage, see the [Examples](https://nemglo.readthedocs.io/en/latest/examples/fundamentals.html) section of the documentation.
 
 ## Contributing
 Interested in contributing? Check out the [contributing guidelines](CONTRIBUTING.md).
