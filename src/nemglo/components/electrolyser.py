@@ -402,15 +402,6 @@ class Electrolyser:
         """
         planner = self._system_plan
 
-        # Create variable production target, set equal to value
-        # Set sum of lhs params equal to, greater than or less than variable on rhs dynamic
-
-        # consider what happens if timseries data input is hourly but requests < hourly period
-        # consider what happens if timeseries data stops midway through week, how to consider last week?
-        
-        # Create a production target variable on selected intervals determined by `period`
-
-        # production target == p1 + p2 + p3
         original = pd.DataFrame(index=planner._timeseries, data={'interval':range(planner._n)})
         original['TimeBegin'] = original.index - timedelta(minutes=planner._intlength)
 

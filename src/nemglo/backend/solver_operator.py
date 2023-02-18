@@ -139,27 +139,7 @@ class Opt_Solver:
 				else:
 					raise Exception("Error with format of inequality type")
 				self.m.add_constr(constraint, name=str(idx))
-				
-	def add_sos_type_2_ARCHIVE(self, sos_2_df):
 
-		#self._decision_vars[lhs_var_idx]
-
-		for interval in sos_2_df['interval'].unique()[0:1]:
-
-			sos_entry = sos_2_df[sos_2_df['interval']==interval]
-
-			#sos_entry['sos_varid'] = sos_entry['sos_varid'].apply(lambda x: self._decision_vars[x])
-			sos_entry['sos_varid'].update(pd.Series(self._decision_vars))
-
-			tupleobj = [(sos_entry.loc[row,'sos_varid'], sos_entry.loc[row,'sos_val']) for row in sos_entry.index]
-
-			self.m.add_sos(tupleobj,2)
-
-		# pass in tuple with weight var name and x-point
-
-
-		#self.m.add_sos(,2)
-		return
 
 	def add_sos_type_2(self, sos_name, weights_df, x_samples, y_samples, xvar_df, yvar_df):
 
@@ -188,7 +168,6 @@ class Opt_Solver:
 			# Constraint for linking y_samples
 			y_link = xsum([weights[i]*y_samples[i] for i in range(len(y_samples))]) == yvar
 			self.m.add_constr(y_link, name=sos_name+"_ylink")
-
 
 		return
 

@@ -8,7 +8,6 @@ import sys
 # Flask/CORS imports
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS, cross_origin
-# app = Flask(__name__)
 
 # Flask
 if getattr(sys, 'frozen', False):
@@ -55,10 +54,6 @@ def api_get_market_data():
         conf = request.json
         return get_market_data(conf)
     except:
-        # with open(LOG_FILEPATH, 'r') as file:
-        #     logfile = file.read()
-        # err_message = logfile.split('200 -')[-1:]
-        # abort(500, err_message[0])
         throw_error_log()
 
 
@@ -69,10 +64,6 @@ def api_get_generator_data():
         conf = request.json
         return get_generator_data(conf)
     except:
-        # with open(LOG_FILEPATH, 'r') as file:
-        #     logfile = file.read()
-        # err_message = logfile.split('200 -')[-1:]
-        # abort(500, err_message[0])
         throw_error_log()
 
 
@@ -84,16 +75,12 @@ def api_get_data():
         print(conf)
         return get_operation(conf)
     except:
-        # with open(LOG_FILEPATH, 'r') as file:
-        #     logfile = file.read()
-        # err_message = logfile.split('200 -')[-1:]
-        # abort(500, err_message[0])
         throw_error_log()
 
 
 def run(port=5000):
     print("\n======================================================================\n"+\
-          "Access NEMGLO-app (web interface) at: https://www.nemglo.org/simulator \n"+\
+          "Access NEMGLO-app (user-interface) see: https://www.nemglo.org/start \n"+\
           "======================================================================\n")
     app.run(port=port)
 

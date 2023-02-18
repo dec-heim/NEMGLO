@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath('../../examples/'))
 project = 'NEMGLO'
 copyright = '2022, Declan Heim'
 author = 'Declan Heim'
-release = '0.2.2'
+release = '0.3.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

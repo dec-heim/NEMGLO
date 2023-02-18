@@ -103,8 +103,6 @@ class Emissions:
             coefficient_list=coeffs)
 
 
-
-
     def _price_emissions(self):
         planner = self._system_plan
         co2_name = self._id + '-impact_emissions'
@@ -136,10 +134,4 @@ class Emissions:
         create_constr_rhs_dynamicvar(planner, constr_name=const_nm, constr_type=">=", rhs_var_id=rhs_var_id)
         create_constr_lhs_on_interval(planner, constr_name=const_nm, constr_rhs=planner._constr_rhs_dynamic[const_nm],\
             coefficient_map={prodsum_name: limit_value})
-
-        # sum emissions <= 3 * h2 production
-        # tCO2/MWh
-        # 100 tCO2 for 1000 kg
-        # kg CO2 per kg H2
-
         
