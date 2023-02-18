@@ -17,12 +17,9 @@ parts:
     sections:
      - file: examples/1_electrolyser/example_1
      - file: examples/2_renewables/example_2
-     - file: examples/3_emissions/example_3
   - file: examples/sensitivities
     sections:
      - file: examples/hydrogen_sensitivities/example_1a
-     - file: examples/2_renewables/example_2a
-     - file: examples/2_renewables/example_2b
 
 - caption: Python Reference
   chapters:
@@ -32,7 +29,6 @@ parts:
   - file: api/optimiser_index
     sections:
     - file: api/optimiser_formatters
-    - file: api/solver_operator
 
 - caption: Help
   chapters:

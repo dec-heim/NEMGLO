@@ -26,7 +26,7 @@ Expands the `Electrolyser` example to include PPAs with renewables `Generator` c
 ```
 :::
 ::::
-
+<!-- 
 ::::{grid} 2
 :gutter: 2
 
@@ -41,7 +41,7 @@ Expands the `Electrolyser` example to include the `Emissions` component class.
 ```
 :::
 
-::::
+:::: -->
 
 
 ----------------

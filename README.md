@@ -22,11 +22,11 @@ pip install nemglo
 For guidance on installation and usage of NEMGLO-app (a graphical user interface), please refer to the project webpage linked above.
 
 ## Usage
-For guidance on `NEMGLO` usage, see the [Examples](https://nemglo.readthedocs.io/en/latest/examples/fundamentals.html) section of the documentation.
+For guidance on `NEMGLO` python usage, see the [Examples](https://nemglo.readthedocs.io/en/latest/examples/fundamentals.html) section of the documentation.
 
 ## Contributing
 Interested in contributing? Check out the [contributing guidelines](CONTRIBUTING.md).
-Please note that this project is released with a [Code of Conduct](). By contributing to this project, you agree to abide by its terms.
+Please note that this project is released with a [Code of Conduct](CONDUCT.md). By contributing to this project, you agree to abide by its terms.
 
 ## License
 `NEMGLO` was created by Declan Heim as a Master's Project at UNSW. It is licensed under the terms of the [BSD 3-Clause license](LICENSE).
@@ -41,7 +41,7 @@ The `NEMGLO` project is affilitated with the [UNSW Collaboration on Energy and E
 Many thanks to:
 - Jay Anand, co-developer of `NEMGLO-app`. 
 - Nick Gorman, Abhijith Prakash, and Shayan Naderi for pointers on `NEMGLO` code development (including adopted NEM tools).
-- Iain MacGill, Anna Bruce, Rahman Daiyan, and Jack Sheppard for advice at various stages to this project.
+- Iain MacGill, Anna Bruce, Rahman Daiyan, and Jack Sheppard for advice at various stages of this project.
 
 ## Contact
 Questions and feedback are very much welcomed. Please reach out by email to [declanheim@outlook.com](mailto:declanheim@outlook.com)

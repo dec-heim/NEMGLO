@@ -1,6 +1,6 @@
 # Optimisation Formatters
 
 ```{eval-rst}
-.. automodule:: nemglo.optimiser_formatters
+.. automodule:: nemglo.backend.optimiser_formatters
    :members:
 ```

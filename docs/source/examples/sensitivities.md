@@ -5,7 +5,7 @@
 :gutter: 2
 
 :::{grid-item-card} {material-regular}`bolt;2em` Minimum Stable Loading (MSL)
-:link: 1_electrolyser/example_1a.html#minimum-stable-loading
+:link: hydrogen_sensitivities/example_1a.html#b-minimum-stable-loading
 
 Demonstration of the `Electrolyser` MSL. Also contains features of `ramp_cost` and
 `production_targets`.
@@ -18,7 +18,7 @@ Go to Example »
 :::
 
 :::{grid-item-card} {material-regular}`bolt;2em` Specific Energy Consumption (SEC)
-:link: 1_electrolyser/example_1a.html#specific-energy-consumption
+:link: hydrogen_sensitivities/example_1a.html#e-specific-energy-consumption
 
 Demonstration of the `Electrolyser` SEC features.
 
@@ -36,7 +36,7 @@ Go to Example »
 :gutter: 2
 
 :::{grid-item-card} {material-regular}`bolt;2em` H2 Price
-:link: 1_electrolyser/example_1a.html#hydrogen-production-benefit-price
+:link: hydrogen_sensitivities/example_1a.html#a-hydrogen-production-benefit-price
 
 Demonstration of impact of changing the `Electrolyser` Hydrogen Production Benefit Price.
 
