@@ -50,7 +50,11 @@ def get_market_data(conf):
                   start_date=convert_dt_fmt(c_md.start_date) + " " + [c_md.start_time if hasattr(c_md, "start_time") else "00:00"][0],
                   end_date=convert_dt_fmt(c_md.end_date) + " " + [c_md.end_time if hasattr(c_md, "end_time") else "00:00"][0],
                   )
-    data._download_geninfo(filter_regions=[c_md.region])
+    try:
+        data._download_geninfo(filter_regions=[c_md.region])
+    except Exception as e:
+        logger.error(e)
+        print(e)
     tracedata, tracedata['time'], tracedata['prices'], tracedata['vre'] = {}, {}, {}, {}
 
     # Nemed Data -> Emissions extraction
@@ -63,17 +67,31 @@ def get_market_data(conf):
         except Exception as e:
             print(e)
 
-
-    prc_df = data.get_prices()
+    try:
+        prc_df = data.get_prices()
+    except Exception as e:
+        logger.error(e)
+        print(e)
     tracedata['time'] = prc_df['Time']
     tracedata['prices'] = prc_df['Prices']
     result = {}
+    logger.info("Prepare Results JSON")
     result['availgens'] = data._info['DUID'].to_list()
+    logger.info("+availgens")
     result['availgens_default_cap'] = data._info['Reg Cap (MW)'].to_list()
+    logger.info("+availgens_default_cap")
     result['availgens_tech'] = data._info['Fuel Source - Descriptor'].to_list()
+    logger.info("+availgens_tech")
+
     result['time'] = convert_timestamp(tracedata['time'])
+    logger.info("+time")
+
     result['timestamps'] = json.loads(tracedata['time'].dt.tz_localize('Australia/Sydney').to_json(orient='records'))
+    logger.info("+timestamps")
+
     result['prices'] = tracedata['prices'].to_list()
+    logger.info("+prices")
+
     if ('emissions_data' in conf):
         result['emissions'] = co2_df['Intensity_Index'].to_list()
     logger.info('=== End get_market_data() ===')

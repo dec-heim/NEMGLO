@@ -77,7 +77,7 @@ class Market:
         # Resample data if requested interval length is not 5 minutes
         if self._intlength != 5:
             self._prices = pd.DataFrame(prices.resample(str(self._intlength)+'min', 
-                                  label='right', origin='end').mean())
+                                  label='right', origin='end')['RRP'].mean())
         else:
             self._prices = pd.DataFrame(prices[['RRP']])
 
